@@ -1,7 +1,9 @@
-# --- WHISP MODERN UI ---
+# --- WHISP MODERN UI (Self-Contained) ---
 class WhispLogin(object):
     @staticmethod
     def build_ui():
+        # --- CRITICAL: ALL IMPORTS INSIDE HERE ---
+        # This prevents the "NameError" crashes permanently.
         from kivy.uix.floatlayout import FloatLayout
         from kivy.uix.boxlayout import BoxLayout
         from kivy.uix.label import Label
@@ -12,14 +14,15 @@ class WhispLogin(object):
 
         # 1. Main Background (Deep "Void" Black)
         layout = FloatLayout()
-        with layout.canvas.before:
-            Color(0.05, 0.05, 0.07, 1)  # Almost black
-            layout.bg = RoundedRectangle(pos=layout.pos, size=layout.size)
         
-        # Auto-resize background
         def update_bg(instance, value):
             instance.bg.pos = instance.pos
             instance.bg.size = instance.size
+
+        with layout.canvas.before:
+            Color(0.05, 0.05, 0.07, 1)  # Almost black background
+            layout.bg = RoundedRectangle(pos=layout.pos, size=layout.size)
+        
         layout.bind(pos=update_bg, size=update_bg)
 
         # 2. The "Card" Container (Centered)
@@ -40,34 +43,33 @@ class WhispLogin(object):
             size_hint=(1, 0.3)
         ))
 
-        # --- CUSTOM ROUNDED INPUT FUNCTION ---
+        # --- CUSTOM ROUNDED INPUT HELPER ---
         def create_modern_input(hint, is_password=False):
-            # Container for the input
+            # Container
             inp_box = BoxLayout(size_hint=(1, 0.15))
             
-            # The Input Field itself
+            # The Input Field
             inp = TextInput(
                 hint_text=hint,
                 password=is_password,
                 multiline=False,
-                background_color=(0,0,0,0), # Transparent standard bg
+                background_color=(0,0,0,0), # Transparent (we draw our own)
                 foreground_color=(1, 1, 1, 1), # White text
                 cursor_color=(0.6, 0.4, 1.0, 1),
                 padding=[20, 20, 20, 15],
                 font_size='18sp'
             )
             
-            # Draw the Rounded Grey Background
+            # Draw Rounded Grey Background
+            def update_inp_rect(inst, val):
+                inst.rect.pos = inst.pos
+                inst.rect.size = inst.size
+
             with inp.canvas.before:
                 Color(0.15, 0.15, 0.18, 1) # Dark Grey Input
                 inp.rect = RoundedRectangle(pos=inp.pos, size=inp.size, radius=[15])
             
-            # Keep the background behind the text
-            def update_inp_rect(inst, val):
-                inst.rect.pos = inst.pos
-                inst.rect.size = inst.size
             inp.bind(pos=update_inp_rect, size=update_inp_rect)
-            
             return inp
 
         # 4. Add Inputs
@@ -87,13 +89,14 @@ class WhispLogin(object):
             color=(1, 1, 1, 1)
         )
         
-        with btn.canvas.before:
-            Color(0.4, 0.2, 0.9, 1) # Deep Purple
-            btn.rect = RoundedRectangle(pos=btn.pos, size=btn.size, radius=[25])
-            
         def update_btn(inst, val):
             inst.rect.pos = inst.pos
             inst.rect.size = inst.size
+
+        with btn.canvas.before:
+            Color(0.4, 0.2, 0.9, 1) # Deep Purple Button
+            btn.rect = RoundedRectangle(pos=btn.pos, size=btn.size, radius=[25])
+            
         btn.bind(pos=update_btn, size=update_btn)
 
         card.add_widget(btn)
@@ -103,7 +106,9 @@ class WhispLogin(object):
 
 # --- ATTACHMENT LOGIC (UNCHANGED) ---
 try:
+    # Build UI inside the safe function
     ui = WhispLogin.build_ui()
+    
     target_app = None
     if 'app_instance' in locals():
         target_app = locals()['app_instance']
@@ -114,10 +119,12 @@ try:
         target_app.layout.clear_widgets()
         target_app.layout.add_widget(ui)
     else:
+        # Fallback for PC testing
         from kivy.app import App
         app = App.get_running_app()
         if app:
             app.layout.clear_widgets()
             app.layout.add_widget(ui)
+
 except Exception as e:
     raise e
