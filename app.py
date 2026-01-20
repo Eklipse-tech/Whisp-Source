@@ -1,8 +1,10 @@
-# --- WHISP "BLUE HORIZON" (Fixed Height Inputs) ---
+# --- WHISP "BLUE HORIZON" (Nuclear Rebuild) ---
 class WhispLogin(object):
     @staticmethod
     def build_ui():
+        # 1. IMPORT EVERYTHING
         from kivy.uix.floatlayout import FloatLayout
+        from kivy.uix.anchorlayout import AnchorLayout
         from kivy.uix.boxlayout import BoxLayout
         from kivy.uix.label import Label
         from kivy.uix.textinput import TextInput
@@ -10,6 +12,7 @@ class WhispLogin(object):
         from kivy.graphics import Color, RoundedRectangle
         from kivy.metrics import dp
         from kivy.clock import Clock
+        from kivy.core.window import Window
         import requests
         import threading
 
@@ -22,44 +25,47 @@ class WhispLogin(object):
         INPUT_BG = (0.18, 0.22, 0.30, 1)        # Slate Blue
         TEXT_COLOR = (1, 1, 1, 1)               # White
 
-        # 2. Main Layout
-        layout = FloatLayout()
+        # 2. ROOT LAYOUT (The Background)
+        root = FloatLayout()
         
-        with layout.canvas.before:
+        with root.canvas.before:
             Color(*BG_COLOR)
-            layout.bg = RoundedRectangle(pos=layout.pos, size=layout.size, radius=[0])
+            root.bg = RoundedRectangle(pos=root.pos, size=root.size, radius=[0])
         
         def update_bg(instance, value):
             instance.bg.pos = instance.pos
             instance.bg.size = instance.size
-        layout.bind(pos=update_bg, size=update_bg)
+        root.bind(pos=update_bg, size=update_bg)
 
-        # 3. Card Container
-        # We use a ScrollView-like logic or just centering
+        # 3. ANCHOR (Holds the card in the center)
+        anchor = AnchorLayout(anchor_x='center', anchor_y='center')
+        root.add_widget(anchor)
+
+        # 4. THE CARD (Fixed Size = No Squishing)
         card = BoxLayout(
             orientation='vertical', 
             padding=[dp(25), dp(30), dp(25), dp(30)], 
             spacing=dp(15),
-            size_hint=(0.85, None), # FIXED HEIGHT so it doesn't squash
-            height=dp(400),         # Tall enough for everything
-            pos_hint={'center_x': 0.5, 'center_y': 0.6} # Sits slightly higher
+            size_hint=(None, None), # Disable auto-sizing
+            width=dp(320),          # Fixed Width (Standard Phone)
+            height=dp(450)          # Fixed Height (Tall enough)
         )
 
-        # 4. STATIC LOGO
+        # 5. STATIC LOGO (Top)
         logo = Label(
             text="whisp", 
-            font_size='50sp', 
+            font_size='48sp', 
             bold=True, 
             color=ACCENT_COLOR,
             size_hint=(1, None),
-            height=dp(80),
+            height=dp(60),
             halign='center',
             valign='middle'
         )
         logo.bind(size=lambda *x: logo.setter('text_size')(logo, (logo.width, None)))
         card.add_widget(logo)
 
-        # 5. STATUS LABEL
+        # 6. STATUS LABEL (Middle)
         status_label = Label(
             text="", 
             font_size='16sp', 
@@ -70,10 +76,10 @@ class WhispLogin(object):
         )
         card.add_widget(status_label)
 
-        # 6. FIXED HEIGHT INPUTS
+        # 7. INPUT BUILDER (Precision Padding)
         def create_input(hint, is_password=False):
-            # Box is FIXED height
-            box = BoxLayout(size_hint=(1, None), height=dp(55))
+            # Wrapper Box
+            box = BoxLayout(size_hint=(1, None), height=dp(50))
             
             inp = TextInput(
                 hint_text=hint,
@@ -86,9 +92,9 @@ class WhispLogin(object):
                 foreground_color=TEXT_COLOR,
                 cursor_color=ACCENT_COLOR,
                 hint_text_color=(0.6, 0.7, 0.8, 1),
-                # Fixed padding works because height is fixed
-                padding=[dp(15), dp(18), dp(15), dp(15)], 
-                font_size='18sp'
+                # CRITICAL FIX: Less vertical padding = Text is visible
+                padding=[dp(15), dp(15), dp(15), dp(0)], 
+                font_size='16sp'
             )
             
             with inp.canvas.before:
@@ -109,14 +115,17 @@ class WhispLogin(object):
         card.add_widget(user_box)
         card.add_widget(pass_box)
 
-        # 7. FIXED HEIGHT BUTTON
+        # 8. SPACER (Pushes button down slightly)
+        card.add_widget(Label(size_hint=(1, None), height=dp(10)))
+
+        # 9. ENTER BUTTON
         btn = Button(
             text="ENTER",
             background_color=(0,0,0,0),
             font_size='18sp',
             bold=True,
             size_hint=(1, None),
-            height=dp(60),
+            height=dp(55),
             color=(1, 1, 1, 1)
         )
         with btn.canvas.before:
@@ -167,9 +176,11 @@ class WhispLogin(object):
 
         btn.bind(on_release=on_enter)
         card.add_widget(btn)
-        layout.add_widget(card)
+        
+        # Add Card to Anchor
+        anchor.add_widget(card)
 
-        return layout
+        return root
 
 # --- ATTACHMENT ---
 try:
