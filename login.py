@@ -15,7 +15,11 @@ import threading
 
 # CONFIG
 SERVER_URL = "https://malika-idioblastic-shawnda.ngrok-free.dev/login"
-LOGO_URL = "https://github.com/Eklipse-tech/Whisp-Source/blob/main/assets/pixel_ghost.png?raw=true"
+
+# --- SAFE LOGO (Using Kivy Logo as placeholder until you upload yours) ---
+LOGO_URL = "https://raw.githubusercontent.com/kivy/kivy/master/kivy/data/logo/kivy-icon-256.png"
+
+# THEME
 BG_COLOR = (0.08, 0.11, 0.18, 1)
 ACCENT_COLOR = (0.2, 0.6, 1.0, 1)
 INPUT_BG = (0.18, 0.22, 0.30, 1)
@@ -27,32 +31,40 @@ class LoginScreen(Screen):
         self.build_ui()
 
     def build_ui(self):
+        # Background
         with self.canvas.before:
             Color(*BG_COLOR)
             self.bg = RoundedRectangle(pos=self.pos, size=self.size, radius=[0])
         self.bind(pos=self.update_bg, size=self.update_bg)
 
+        # Main Layout
         anchor = AnchorLayout(anchor_x='center', anchor_y='center')
         self.add_widget(anchor)
 
+        # The Card
         card = BoxLayout(orientation='vertical', padding=[dp(25),dp(30),dp(25),dp(30)], 
-                         spacing=dp(15), size_hint=(None, None), width=dp(320), height=dp(460))
+                         spacing=dp(15), size_hint=(None, None), width=dp(320), height=dp(480))
 
-        # Logo
+        # Logo (Pixel Art Mode)
         logo = AsyncImage(source=LOGO_URL, size_hint=(1, None), height=dp(80), allow_stretch=True, keep_ratio=True)
+        # Force sharp pixels (Nearest Neighbor scaling)
         logo.bind(texture=self.make_sharp)
         card.add_widget(logo)
 
+        # Status Label
         self.status = Label(text="", font_size='16sp', color=(1,1,0,1), size_hint=(1,None), height=dp(30))
         card.add_widget(self.status)
 
+        # Inputs
         self.user_in, u_box = self.create_input("Username")
         self.pass_in, p_box = self.create_input("Password", True)
         card.add_widget(u_box)
         card.add_widget(p_box)
 
+        # Spacer
         card.add_widget(Label(size_hint=(1, None), height=dp(10)))
 
+        # Button
         self.btn = Button(text="ENTER", background_color=(0,0,0,0), font_size='18sp', bold=True, size_hint=(1, None), height=dp(55))
         with self.btn.canvas.before:
             Color(*ACCENT_COLOR)
@@ -64,17 +76,39 @@ class LoginScreen(Screen):
         anchor.add_widget(card)
 
     def create_input(self, hint, is_pwd=False):
+        # Container
         stack = FloatLayout(size_hint=(1, None), height=dp(55))
-        bg = Widget(size_hint=(1, 1))
+        
+        # Background Layer (FIX: Added pos_hint)
+        bg = Widget(size_hint=(1, 1), pos_hint={'x': 0, 'y': 0})
         with bg.canvas.before:
             Color(*INPUT_BG)
             bg.rect = RoundedRectangle(radius=[15])
+        
+        # Keep background graphic bound to widget position
         bg.bind(pos=lambda i,v: setattr(i.rect, 'pos', i.pos), size=lambda i,v: setattr(i.rect, 'size', i.size))
         stack.add_widget(bg)
         
-        inp = TextInput(hint_text=hint, password=is_pwd, multiline=False, background_color=(0,0,0,0), 
-                        foreground_color=TEXT_COLOR, cursor_color=ACCENT_COLOR, font_size='16sp',
-                        padding=[dp(15), dp(15), dp(15), 0])
+        # Text Layer (FIX: Added pos_hint)
+        inp = TextInput(
+            hint_text=hint, 
+            password=is_pwd, 
+            multiline=False, 
+            background_color=(0,0,0,0), 
+            foreground_color=TEXT_COLOR, 
+            cursor_color=ACCENT_COLOR, 
+            font_size='16sp',
+            size_hint=(1, 1),
+            pos_hint={'x': 0, 'y': 0}, # <--- This was the missing key!
+            padding=[dp(15), dp(15), dp(15), 0]
+        )
+        
+        # Auto-center text vertically
+        def center_text(inst, val):
+            pad_top = (inst.height - inst.line_height) / 2
+            inst.padding = [dp(15), pad_top, dp(15), 0]
+        inp.bind(size=center_text, line_height=center_text)
+
         stack.add_widget(inp)
         return inp, stack
 
