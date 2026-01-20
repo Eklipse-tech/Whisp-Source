@@ -1,11 +1,13 @@
-# --- WHISP "BLUE HORIZON" (Rounded + Auto-Center) ---
+# --- WHISP "BLUE HORIZON" (Step 1: Pixel Art Logo) ---
 class WhispLogin(object):
     @staticmethod
     def build_ui():
+        # 1. IMPORTS
         from kivy.uix.floatlayout import FloatLayout
         from kivy.uix.anchorlayout import AnchorLayout
         from kivy.uix.boxlayout import BoxLayout
         from kivy.uix.label import Label
+        from kivy.uix.image import AsyncImage # <--- NEW: For loading images
         from kivy.uix.textinput import TextInput
         from kivy.uix.button import Button
         from kivy.uix.widget import Widget
@@ -14,27 +16,13 @@ class WhispLogin(object):
         from kivy.clock import Clock
         import requests
         import threading
-        import os
 
         # --- CONFIGURATION ---
         SERVER_URL = "https://malika-idioblastic-shawnda.ngrok-free.dev/login"
-
-        # --- SAFE FONT LOADER ---
-        # Tries to download Quicksand. If it fails, uses Default.
-        font_name = 'Roboto' # Kivy Default
-        try:
-            font_path = os.path.join(os.getcwd(), 'Quicksand-Bold.ttf')
-            if not os.path.exists(font_path):
-                print("Downloading Font...")
-                url = "https://github.com/google/fonts/raw/main/ofl/quicksand/Quicksand-Bold.ttf"
-                r = requests.get(url, timeout=5)
-                with open(font_path, 'wb') as f:
-                    f.write(r.content)
-            
-            if os.path.exists(font_path):
-                font_name = font_path
-        except Exception as e:
-            print("Font Download Failed, using default.")
+        
+        # REPLACE THIS WITH YOUR LOGO URL LATER
+        # For now, we use a placeholder pixel-art ghost icon
+        LOGO_URL = "https://github.com/Eklipse-tech/Whisp-Source/blob/main/assets/pixel_ghost.png?raw=true"
 
         # --- THEME COLORS ---
         BG_COLOR = (0.08, 0.11, 0.18, 1)
@@ -42,7 +30,7 @@ class WhispLogin(object):
         INPUT_BG = (0.18, 0.22, 0.30, 1)
         TEXT_COLOR = (1, 1, 1, 1)
 
-        # 1. ROOT
+        # 2. ROOT LAYOUT
         root = FloatLayout()
         with root.canvas.before:
             Color(*BG_COLOR)
@@ -53,11 +41,11 @@ class WhispLogin(object):
             instance.bg.size = instance.size
         root.bind(pos=update_bg, size=update_bg)
 
-        # 2. ANCHOR
+        # 3. ANCHOR
         anchor = AnchorLayout(anchor_x='center', anchor_y='center')
         root.add_widget(anchor)
 
-        # 3. CARD
+        # 4. CARD
         card = BoxLayout(
             orientation='vertical', 
             padding=[dp(25), dp(30), dp(25), dp(30)], 
@@ -67,24 +55,31 @@ class WhispLogin(object):
             height=dp(460)
         )
 
-        # 4. LOGO
-        logo = Label(
-            text="whisp", 
-            font_name=font_name, # <--- Rounded Font
-            font_size='48sp', 
-            bold=True, 
-            color=ACCENT_COLOR,
+        # 5. PIXEL ART LOGO LOADER
+        # We use AsyncImage to load from the web
+        logo = AsyncImage(
+            source=LOGO_URL,
             size_hint=(1, None),
-            height=dp(60),
-            halign='center',
-            valign='middle'
+            height=dp(80), # Slightly taller for an image
+            allow_stretch=True,
+            keep_ratio=True
         )
-        logo.bind(size=lambda *x: logo.setter('text_size')(logo, (logo.width, None)))
+
+        # --- CRITICAL: FORCE PIXEL PERFECTION ---
+        # This function runs when the image finishes downloading.
+        # It tells the graphics engine: "DO NOT BLUR THIS."
+        def make_pixel_art_sharp(instance, texture):
+            if texture:
+                texture.mag_filter = 'nearest' # Keep pixels sharp when zooming in
+                texture.min_filter = 'nearest' # Keep pixels sharp when zooming out
+        
+        # Bind the function to the texture loading event
+        logo.bind(texture=make_pixel_art_sharp)
+        
         card.add_widget(logo)
 
         status_label = Label(
             text="", 
-            font_name=font_name, # <--- Rounded Font
             font_size='16sp', 
             color=(1, 1, 0, 1), 
             size_hint=(1, None),
@@ -92,11 +87,11 @@ class WhispLogin(object):
         )
         card.add_widget(status_label)
 
-        # 5. INPUTS (With Auto-Centering)
+        # 6. INPUTS (Safe Auto-Centered)
         def create_input(hint, is_password=False):
             stack = FloatLayout(size_hint=(1, None), height=dp(55))
             
-            # BG
+            # Layer 1: Background
             bg_widget = Widget(size_hint=(1, 1), pos_hint={'x': 0, 'y': 0})
             with bg_widget.canvas.before:
                 Color(*INPUT_BG)
@@ -108,11 +103,10 @@ class WhispLogin(object):
             bg_widget.bind(pos=update_rect, size=update_rect)
             stack.add_widget(bg_widget)
 
-            # TEXT INPUT
+            # Layer 2: Input
             inp = TextInput(
                 hint_text=hint,
                 password=is_password,
-                font_name=font_name, # <--- Rounded Font
                 multiline=False,
                 write_tab=False,
                 background_normal='', 
@@ -121,17 +115,15 @@ class WhispLogin(object):
                 foreground_color=TEXT_COLOR,
                 cursor_color=ACCENT_COLOR,
                 hint_text_color=(0.6, 0.7, 0.8, 1),
-                font_size='17sp',
+                font_size='16sp',
                 size_hint=(1, 1),
                 pos_hint={'x': 0, 'y': 0}
             )
 
-            # --- AUTO-CENTERING MATH ---
-            # This ensures text is visible regardless of font
+            # Auto-Center Logic
             def center_text(instance, value):
                 pad_top = (instance.height - instance.line_height) / 2
                 instance.padding = [dp(15), pad_top, dp(15), 0]
-            
             inp.bind(size=center_text, line_height=center_text)
             
             stack.add_widget(inp)
@@ -143,15 +135,15 @@ class WhispLogin(object):
         card.add_widget(user_box)
         card.add_widget(pass_box)
 
-        # 6. SPACER
+        # 7. SPACER
         card.add_widget(Label(size_hint=(1, None), height=dp(10)))
 
-        # 7. BUTTON
+        # 8. BUTTON
         btn = Button(
             text="ENTER",
-            font_name=font_name, # <--- Rounded Font
             background_color=(0,0,0,0),
             font_size='18sp',
+            bold=True,
             size_hint=(1, None),
             height=dp(55),
             color=(1, 1, 1, 1)
@@ -169,22 +161,25 @@ class WhispLogin(object):
         def on_enter(instance):
             u = user_in.text
             p = pass_in.text
+            
             status_label.text = "Connecting..."
             status_label.color = (1, 1, 0, 1)
             btn.disabled = True
-            
+
             def send_request():
                 try:
                     headers = {"ngrok-skip-browser-warning": "true"}
                     payload = {"username": u, "password": p}
+                    
                     resp = requests.post(SERVER_URL, json=payload, headers=headers, timeout=5)
+                    
                     if resp.status_code == 200:
                         Clock.schedule_once(lambda dt: success_ui(), 0)
                     elif resp.status_code == 401:
                         Clock.schedule_once(lambda dt: fail_ui("Wrong Password"), 0)
                     else:
                         Clock.schedule_once(lambda dt: fail_ui(f"Error {resp.status_code}"), 0)
-                except:
+                except Exception as e:
                     Clock.schedule_once(lambda dt: fail_ui("Server Offline"), 0)
 
             threading.Thread(target=send_request).start()
@@ -201,6 +196,7 @@ class WhispLogin(object):
 
         btn.bind(on_release=on_enter)
         card.add_widget(btn)
+        
         anchor.add_widget(card)
         return root
 
