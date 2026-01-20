@@ -1,18 +1,17 @@
-# --- WHISP "BLUE HORIZON" (Nuclear Rebuild) ---
+# --- WHISP "BLUE HORIZON" (Layered Inputs) ---
 class WhispLogin(object):
     @staticmethod
     def build_ui():
-        # 1. IMPORT EVERYTHING
         from kivy.uix.floatlayout import FloatLayout
         from kivy.uix.anchorlayout import AnchorLayout
         from kivy.uix.boxlayout import BoxLayout
         from kivy.uix.label import Label
         from kivy.uix.textinput import TextInput
         from kivy.uix.button import Button
+        from kivy.uix.widget import Widget # Used for the separate background layer
         from kivy.graphics import Color, RoundedRectangle
         from kivy.metrics import dp
         from kivy.clock import Clock
-        from kivy.core.window import Window
         import requests
         import threading
 
@@ -20,14 +19,13 @@ class WhispLogin(object):
         SERVER_URL = "https://malika-idioblastic-shawnda.ngrok-free.dev/login"
 
         # --- THEME COLORS ---
-        BG_COLOR = (0.08, 0.11, 0.18, 1)        # Deep Navy
-        ACCENT_COLOR = (0.2, 0.6, 1.0, 1)       # Electric Blue
-        INPUT_BG = (0.18, 0.22, 0.30, 1)        # Slate Blue
-        TEXT_COLOR = (1, 1, 1, 1)               # White
+        BG_COLOR = (0.08, 0.11, 0.18, 1)
+        ACCENT_COLOR = (0.2, 0.6, 1.0, 1)
+        INPUT_BG = (0.18, 0.22, 0.30, 1)
+        TEXT_COLOR = (1, 1, 1, 1)
 
-        # 2. ROOT LAYOUT (The Background)
+        # 1. ROOT
         root = FloatLayout()
-        
         with root.canvas.before:
             Color(*BG_COLOR)
             root.bg = RoundedRectangle(pos=root.pos, size=root.size, radius=[0])
@@ -37,21 +35,21 @@ class WhispLogin(object):
             instance.bg.size = instance.size
         root.bind(pos=update_bg, size=update_bg)
 
-        # 3. ANCHOR (Holds the card in the center)
+        # 2. ANCHOR (Center the card)
         anchor = AnchorLayout(anchor_x='center', anchor_y='center')
         root.add_widget(anchor)
 
-        # 4. THE CARD (Fixed Size = No Squishing)
+        # 3. CARD (Fixed Dimensions)
         card = BoxLayout(
             orientation='vertical', 
             padding=[dp(25), dp(30), dp(25), dp(30)], 
             spacing=dp(15),
-            size_hint=(None, None), # Disable auto-sizing
-            width=dp(320),          # Fixed Width (Standard Phone)
-            height=dp(450)          # Fixed Height (Tall enough)
+            size_hint=(None, None),
+            width=dp(320),
+            height=dp(460)
         )
 
-        # 5. STATIC LOGO (Top)
+        # 4. LOGO & STATUS
         logo = Label(
             text="whisp", 
             font_size='48sp', 
@@ -65,22 +63,35 @@ class WhispLogin(object):
         logo.bind(size=lambda *x: logo.setter('text_size')(logo, (logo.width, None)))
         card.add_widget(logo)
 
-        # 6. STATUS LABEL (Middle)
         status_label = Label(
             text="", 
             font_size='16sp', 
             color=(1, 1, 0, 1), 
             size_hint=(1, None),
-            height=dp(30),
-            halign='center'
+            height=dp(30)
         )
         card.add_widget(status_label)
 
-        # 7. INPUT BUILDER (Precision Padding)
+        # 5. NEW INPUT BUILDER (Separated Layers)
         def create_input(hint, is_password=False):
-            # Wrapper Box
-            box = BoxLayout(size_hint=(1, None), height=dp(50))
+            # PARENT: FloatLayout allows us to stack things on top of each other
+            # Fixed height of 55dp
+            stack = FloatLayout(size_hint=(1, None), height=dp(55))
             
+            # LAYER 1: The Background (Pure Graphic)
+            bg_widget = Widget(size_hint=(1, 1), pos_hint={'x': 0, 'y': 0})
+            with bg_widget.canvas.before:
+                Color(*INPUT_BG)
+                bg_widget.rect = RoundedRectangle(pos=bg_widget.pos, size=bg_widget.size, radius=[12])
+            
+            def update_rect(inst, val):
+                inst.rect.pos = inst.pos
+                inst.rect.size = inst.size
+            bg_widget.bind(pos=update_rect, size=update_rect)
+            
+            stack.add_widget(bg_widget)
+
+            # LAYER 2: The Input (Transparent, sitting ON TOP)
             inp = TextInput(
                 hint_text=hint,
                 password=is_password,
@@ -88,26 +99,19 @@ class WhispLogin(object):
                 write_tab=False,
                 background_normal='', 
                 background_active='', 
-                background_color=(0,0,0,0),
-                foreground_color=TEXT_COLOR,
+                background_color=(0,0,0,0), # Invisible background
+                foreground_color=TEXT_COLOR, # Bright White Text
                 cursor_color=ACCENT_COLOR,
                 hint_text_color=(0.6, 0.7, 0.8, 1),
-                # CRITICAL FIX: Less vertical padding = Text is visible
-                padding=[dp(15), dp(15), dp(15), dp(0)], 
-                font_size='16sp'
+                font_size='16sp',
+                # Minimal padding to ensure text is vertically centered
+                padding=[dp(15), dp(18), dp(15), dp(6)],
+                size_hint=(1, 1),
+                pos_hint={'x': 0, 'y': 0}
             )
+            stack.add_widget(inp)
             
-            with inp.canvas.before:
-                Color(*INPUT_BG)
-                inp.rect = RoundedRectangle(pos=inp.pos, size=inp.size, radius=[12])
-            
-            def update_rect(inst, val):
-                inst.rect.pos = inst.pos
-                inst.rect.size = inst.size
-            inp.bind(pos=update_rect, size=update_rect)
-            
-            box.add_widget(inp)
-            return inp, box
+            return inp, stack
 
         user_in, user_box = create_input("Username")
         pass_in, pass_box = create_input("Password", True)
@@ -115,10 +119,10 @@ class WhispLogin(object):
         card.add_widget(user_box)
         card.add_widget(pass_box)
 
-        # 8. SPACER (Pushes button down slightly)
+        # 6. SPACER
         card.add_widget(Label(size_hint=(1, None), height=dp(10)))
 
-        # 9. ENTER BUTTON
+        # 7. BUTTON
         btn = Button(
             text="ENTER",
             background_color=(0,0,0,0),
@@ -143,7 +147,7 @@ class WhispLogin(object):
             p = pass_in.text
             
             status_label.text = "Connecting..."
-            status_label.color = (1, 1, 0, 1) # Yellow
+            status_label.color = (1, 1, 0, 1)
             btn.disabled = True
 
             def send_request():
@@ -166,20 +170,18 @@ class WhispLogin(object):
 
         def success_ui():
             status_label.text = "ACCESS GRANTED"
-            status_label.color = (0, 1, 0, 1) # Green
+            status_label.color = (0, 1, 0, 1)
             btn.disabled = False
 
         def fail_ui(msg):
             status_label.text = msg
-            status_label.color = (1, 0, 0, 1) # Red
+            status_label.color = (1, 0, 0, 1)
             btn.disabled = False
 
         btn.bind(on_release=on_enter)
         card.add_widget(btn)
         
-        # Add Card to Anchor
         anchor.add_widget(card)
-
         return root
 
 # --- ATTACHMENT ---
