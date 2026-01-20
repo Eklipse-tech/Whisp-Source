@@ -1,9 +1,8 @@
-# --- WHISP MODERN UI (Self-Contained) ---
+# --- WHISP MODERN UI (Self-Contained & Scope-Safe) ---
 class WhispLogin(object):
     @staticmethod
     def build_ui():
-        # --- CRITICAL: ALL IMPORTS INSIDE HERE ---
-        # This prevents the "NameError" crashes permanently.
+        # --- CRITICAL: ALL IMPORTS MUST BE INSIDE HERE ---
         from kivy.uix.floatlayout import FloatLayout
         from kivy.uix.boxlayout import BoxLayout
         from kivy.uix.label import Label
@@ -20,7 +19,7 @@ class WhispLogin(object):
             instance.bg.size = instance.size
 
         with layout.canvas.before:
-            Color(0.05, 0.05, 0.07, 1)  # Almost black background
+            Color(0.05, 0.05, 0.07, 1)  # Almost black
             layout.bg = RoundedRectangle(pos=layout.pos, size=layout.size)
         
         layout.bind(pos=update_bg, size=update_bg)
