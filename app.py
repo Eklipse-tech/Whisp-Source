@@ -1,41 +1,93 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.graphics import Color, Rectangle
-import random
 
-# 1. Define the UI
-class LoginScreen(BoxLayout):
+# --- UI DEFINITION ---
+class WhispLogin(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.orientation = 'vertical'
+        self.padding = [40, 60, 40, 60]  # Left, Top, Right, Bottom
+        self.spacing = 20
         
-        # Add a colored background so we KNOW it's drawing
+        # Dark Background
         with self.canvas.before:
-            Color(0.2, 0.2, 0.2, 1)  # Dark Grey
+            Color(0.12, 0.12, 0.14, 1)  # Dark Grey
             self.rect = Rectangle(size=self.size, pos=self.pos)
         self.bind(size=self.update_rect, pos=self.update_rect)
 
-        # Big Title
-        self.add_widget(Label(text="WHISP RELOADED", font_size='40sp', color=(0,1,0,1)))
-        
-        # Test Button
-        self.btn = Button(text="CLICK ME", size_hint=(1, 0.2))
+        # Title
+        self.add_widget(Label(
+            text="WHISP", 
+            font_size='40sp', 
+            bold=True, 
+            color=(0.5, 0.3, 0.9, 1), # Purple Accent
+            size_hint=(1, 0.3)
+        ))
+
+        # Inputs
+        self.user = TextInput(
+            hint_text="Username", 
+            multiline=False, 
+            size_hint=(1, 0.12),
+            background_color=(0.2, 0.2, 0.2, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(0.5, 0.3, 0.9, 1)
+        )
+        self.add_widget(self.user)
+
+        self.pwd = TextInput(
+            hint_text="Password", 
+            password=True, 
+            multiline=False, 
+            size_hint=(1, 0.12),
+            background_color=(0.2, 0.2, 0.2, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(0.5, 0.3, 0.9, 1)
+        )
+        self.add_widget(self.pwd)
+
+        # Button
+        self.btn = Button(
+            text="ENTER", 
+            size_hint=(1, 0.15),
+            background_color=(0.5, 0.3, 0.9, 1),
+            background_normal=''
+        )
         self.add_widget(self.btn)
+        
+        # Status Label
+        self.status = Label(text="", color=(1,0.3,0.3,1), size_hint=(1, 0.1))
+        self.add_widget(self.status)
 
     def update_rect(self, *args):
         self.rect.size = self.size
         self.rect.pos = self.pos
 
-# 2. THE CRITICAL PART (Attaching to the screen)
+# --- THE ATTACHMENT LOGIC ---
+# This is the part that was failing before. 
+# We look for 'app_instance' in the local variables passed by the Shell.
+
 try:
-    # We try to find the shell app
-    if 'app_instance' in globals():
-        app_instance.layout.clear_widgets() # Clean slate
-        app_instance.layout.add_widget(LoginScreen()) # Add the new UI
-    else:
-        print("Error: Could not find app_instance")
+    # 1. Create the UI
+    ui = WhispLogin()
+    
+    # 2. Find the App Window (The "Shell")
+    # In the new shell, 'app_instance' is passed directly as a local variable.
+    if 'app_instance' in locals():
+        target_app = locals()['app_instance']
+        
+        # 3. Mount the UI
+        target_app.layout.clear_widgets() # Clear "Loading..."
+        target_app.layout.add_widget(ui)  # Add Login Screen
+        
+    elif 'app_instance' in globals():
+        # Fallback check
+        globals()['app_instance'].layout.clear_widgets()
+        globals()['app_instance'].layout.add_widget(ui)
+        
 except Exception as e:
-    # If something fails, print it to the screen so we see the error
-    if 'app_instance' in globals():
-        app_instance.layout.add_widget(Label(text=f"ERROR: {e}", color=(1,0,0,1)))
+    # If this fails, the Shell will catch it and show the Red Error
+    raise e
