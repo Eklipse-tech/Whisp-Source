@@ -13,7 +13,7 @@ class WhispLogin(BoxLayout):
         self.spacing = 20
         
         # --- FIX: IMPORT GRAPHICS INSIDE THE METHOD ---
-        # This ensures they are available in the correct scope
+        # This tells Python: "Look for Color right here, right now."
         from kivy.graphics import Color, Rectangle
 
         # Dark Background
@@ -68,7 +68,7 @@ class WhispLogin(BoxLayout):
         self.add_widget(self.status)
 
     def update_rect(self, *args):
-        # We re-import here to be safe (Python caches imports so it's fast)
+        # Re-import here to be 100% safe
         from kivy.graphics import Rectangle
         self.rect.size = self.size
         self.rect.pos = self.pos
