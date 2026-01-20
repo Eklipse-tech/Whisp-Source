@@ -1,4 +1,4 @@
-# --- WHISP "BLUE HORIZON" (Connected) ---
+# --- WHISP "BLUE HORIZON" (Final Polish) ---
 class WhispLogin(object):
     @staticmethod
     def build_ui():
@@ -11,11 +11,12 @@ class WhispLogin(object):
         from kivy.graphics import Color, RoundedRectangle
         from kivy.metrics import dp
         from kivy.clock import Clock
+        from kivy.core.window import Window
         import requests
         import threading
 
         # --- CONFIGURATION ---
-        # Your Ngrok Tunnel (The "Wormhole" to your PC)
+        # Your Ngrok Tunnel
         SERVER_URL = "https://malika-idioblastic-shawnda.ngrok-free.dev/login"
 
         # --- THEME COLORS ---
@@ -45,31 +46,41 @@ class WhispLogin(object):
             pos_hint={'center_x': 0.5, 'center_y': 0.55}
         )
 
-        # 4. Title
+        # 4. Title (With Smart Sizing)
         title_label = Label(
             text="whisp", 
             font_size='50sp', 
             bold=True, 
             color=ACCENT_COLOR,
-            size_hint=(1, 0.3)
+            size_hint=(1, 0.3),
+            halign='center',
+            valign='middle'
         )
+        # This ensures text wraps inside the box instead of flying off screen
+        title_label.bind(size=lambda *x: title_label.setter('text_size')(title_label, (title_label.width, None)))
         card.add_widget(title_label)
 
         # 5. Helper for Inputs
         def create_input(hint, is_password=False):
             box = BoxLayout(size_hint=(1, 0.18))
+            
             inp = TextInput(
                 hint_text=hint,
                 password=is_password,
                 multiline=False,
                 write_tab=False,
-                background_color=(0,0,0,0),
+                background_normal='', # Removes default Kivy background
+                background_active='', # Removes default focus background
+                background_color=(0,0,0,0), # Fully transparent
                 foreground_color=TEXT_COLOR,
                 cursor_color=ACCENT_COLOR,
                 hint_text_color=(0.6, 0.7, 0.8, 1),
-                padding=[dp(15), dp(15), dp(15), dp(15)],
+                # FIX: Reduced vertical padding to ensure text isn't squashed
+                padding=[dp(15), dp(15), dp(15), dp(10)],
                 font_size='18sp'
             )
+            
+            # Custom Background
             with inp.canvas.before:
                 Color(*INPUT_BG)
                 inp.rect = RoundedRectangle(pos=inp.pos, size=inp.size, radius=[12])
@@ -78,6 +89,7 @@ class WhispLogin(object):
                 inst.rect.pos = inst.pos
                 inst.rect.size = inst.size
             inp.bind(pos=update_rect, size=update_rect)
+            
             box.add_widget(inp)
             return inp, box
 
@@ -110,14 +122,14 @@ class WhispLogin(object):
             u = user_in.text
             p = pass_in.text
             
-            # Visual Feedback
+            # Reset UI state
+            title_label.font_size = '30sp' # Shrink font for status messages
             title_label.text = "Connecting..."
             title_label.color = (1, 1, 0, 1) # Yellow
             btn.disabled = True
 
             def send_request():
                 try:
-                    # We add a special header so Ngrok doesn't block the request
                     headers = {"ngrok-skip-browser-warning": "true"}
                     payload = {"username": u, "password": p}
                     
@@ -135,11 +147,13 @@ class WhispLogin(object):
             threading.Thread(target=send_request).start()
 
         def success_ui():
+            title_label.font_size = '35sp' # Slightly larger for success
             title_label.text = "ACCESS GRANTED"
             title_label.color = (0, 1, 0, 1) # Green
             btn.disabled = False
 
         def fail_ui(msg):
+            title_label.font_size = '30sp' # Smaller for errors so they fit
             title_label.text = msg
             title_label.color = (1, 0, 0, 1) # Red
             btn.disabled = False
