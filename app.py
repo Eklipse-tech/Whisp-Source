@@ -1,8 +1,7 @@
-# --- WHISP "BLUE HORIZON" (Master Fix) ---
+# --- WHISP "BLUE HORIZON" (Fixed Height Inputs) ---
 class WhispLogin(object):
     @staticmethod
     def build_ui():
-        # 1. IMPORT EVERYTHING
         from kivy.uix.floatlayout import FloatLayout
         from kivy.uix.boxlayout import BoxLayout
         from kivy.uix.label import Label
@@ -36,40 +35,45 @@ class WhispLogin(object):
         layout.bind(pos=update_bg, size=update_bg)
 
         # 3. Card Container
+        # We use a ScrollView-like logic or just centering
         card = BoxLayout(
             orientation='vertical', 
             padding=[dp(25), dp(30), dp(25), dp(30)], 
             spacing=dp(15),
-            size_hint=(0.85, 0.65), 
-            pos_hint={'center_x': 0.5, 'center_y': 0.55}
+            size_hint=(0.85, None), # FIXED HEIGHT so it doesn't squash
+            height=dp(400),         # Tall enough for everything
+            pos_hint={'center_x': 0.5, 'center_y': 0.6} # Sits slightly higher
         )
 
-        # 4. STATIC LOGO (Will never change)
+        # 4. STATIC LOGO
         logo = Label(
             text="whisp", 
             font_size='50sp', 
             bold=True, 
             color=ACCENT_COLOR,
-            size_hint=(1, 0.20),
+            size_hint=(1, None),
+            height=dp(80),
             halign='center',
             valign='middle'
         )
         logo.bind(size=lambda *x: logo.setter('text_size')(logo, (logo.width, None)))
         card.add_widget(logo)
 
-        # 5. NEW STATUS LABEL (Changes instead of logo)
+        # 5. STATUS LABEL
         status_label = Label(
             text="", 
             font_size='16sp', 
-            color=(1, 1, 0, 1), # Starts Yellow
-            size_hint=(1, 0.10),
+            color=(1, 1, 0, 1), 
+            size_hint=(1, None),
+            height=dp(30),
             halign='center'
         )
         card.add_widget(status_label)
 
-        # 6. Helper for Inputs (Text Visibility Fix)
+        # 6. FIXED HEIGHT INPUTS
         def create_input(hint, is_password=False):
-            box = BoxLayout(size_hint=(1, 0.15))
+            # Box is FIXED height
+            box = BoxLayout(size_hint=(1, None), height=dp(55))
             
             inp = TextInput(
                 hint_text=hint,
@@ -78,16 +82,15 @@ class WhispLogin(object):
                 write_tab=False,
                 background_normal='', 
                 background_active='', 
-                background_color=(0,0,0,0), # Transparent
-                foreground_color=TEXT_COLOR, # WHITE TEXT
+                background_color=(0,0,0,0),
+                foreground_color=TEXT_COLOR,
                 cursor_color=ACCENT_COLOR,
                 hint_text_color=(0.6, 0.7, 0.8, 1),
-                # FIX: Smaller padding ensures text stays visible inside the box
-                padding=[dp(15), dp(12), dp(15), dp(12)],
+                # Fixed padding works because height is fixed
+                padding=[dp(15), dp(18), dp(15), dp(15)], 
                 font_size='18sp'
             )
             
-            # Custom Background
             with inp.canvas.before:
                 Color(*INPUT_BG)
                 inp.rect = RoundedRectangle(pos=inp.pos, size=inp.size, radius=[12])
@@ -106,13 +109,14 @@ class WhispLogin(object):
         card.add_widget(user_box)
         card.add_widget(pass_box)
 
-        # 7. Enter Button
+        # 7. FIXED HEIGHT BUTTON
         btn = Button(
             text="ENTER",
             background_color=(0,0,0,0),
             font_size='18sp',
             bold=True,
-            size_hint=(1, 0.15),
+            size_hint=(1, None),
+            height=dp(60),
             color=(1, 1, 1, 1)
         )
         with btn.canvas.before:
@@ -129,7 +133,6 @@ class WhispLogin(object):
             u = user_in.text
             p = pass_in.text
             
-            # Update STATUS LABEL only
             status_label.text = "Connecting..."
             status_label.color = (1, 1, 0, 1) # Yellow
             btn.disabled = True
