@@ -1,29 +1,34 @@
-# We only import the layout basics at the top level
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
-from kivy.uix.textinput import TextInput
-from kivy.uix.button import Button
+# --- SELF-CONTAINED UI ---
+# We define the class first, but we don't import ANYTHING at the top level.
+# This forces the script to find the tools it needs when it runs.
 
-# --- UI DEFINITION ---
-class WhispLogin(BoxLayout):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.orientation = 'vertical'
-        self.padding = [40, 60, 40, 60]
-        self.spacing = 20
-        
-        # --- FIX: IMPORT GRAPHICS INSIDE THE METHOD ---
-        # This tells Python: "Look for Color right here, right now."
+class WhispLogin(object):
+    # We use a factory method to build the widget to avoid inheritance scope issues
+    @staticmethod
+    def build_ui():
+        # --- ALL IMPORTS MUST BE INSIDE HERE ---
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.textinput import TextInput
+        from kivy.uix.button import Button
         from kivy.graphics import Color, Rectangle
 
-        # Dark Background
-        with self.canvas.before:
-            Color(0.12, 0.12, 0.14, 1)  # Dark Grey
-            self.rect = Rectangle(size=self.size, pos=self.pos)
-        self.bind(size=self.update_rect, pos=self.update_rect)
+        # Create the main layout
+        layout = BoxLayout(orientation='vertical', padding=[40, 60, 40, 60], spacing=20)
 
-        # Title
-        self.add_widget(Label(
+        # 1. Background Logic
+        def update_rect(instance, value):
+            instance.bg_rect.pos = instance.pos
+            instance.bg_rect.size = instance.size
+
+        with layout.canvas.before:
+            Color(0.12, 0.12, 0.14, 1)  # Dark Grey
+            layout.bg_rect = Rectangle(size=layout.size, pos=layout.pos)
+        
+        layout.bind(size=update_rect, pos=update_rect)
+
+        # 2. Title
+        layout.add_widget(Label(
             text="WHISP", 
             font_size='40sp', 
             bold=True, 
@@ -31,8 +36,8 @@ class WhispLogin(BoxLayout):
             size_hint=(1, 0.3)
         ))
 
-        # Username Input
-        self.user = TextInput(
+        # 3. Username
+        user_input = TextInput(
             hint_text="Username", 
             multiline=False, 
             size_hint=(1, 0.12),
@@ -40,10 +45,10 @@ class WhispLogin(BoxLayout):
             foreground_color=(1, 1, 1, 1),
             cursor_color=(0.5, 0.3, 0.9, 1)
         )
-        self.add_widget(self.user)
+        layout.add_widget(user_input)
 
-        # Password Input
-        self.pwd = TextInput(
+        # 4. Password
+        pass_input = TextInput(
             hint_text="Password", 
             password=True, 
             multiline=False, 
@@ -52,46 +57,42 @@ class WhispLogin(BoxLayout):
             foreground_color=(1, 1, 1, 1),
             cursor_color=(0.5, 0.3, 0.9, 1)
         )
-        self.add_widget(self.pwd)
+        layout.add_widget(pass_input)
 
-        # Login Button
-        self.btn = Button(
+        # 5. Button
+        btn = Button(
             text="ENTER", 
             size_hint=(1, 0.15),
             background_color=(0.5, 0.3, 0.9, 1),
             background_normal=''
         )
-        self.add_widget(self.btn)
-        
-        # Status Label
-        self.status = Label(text="", color=(1,0.3,0.3,1), size_hint=(1, 0.1))
-        self.add_widget(self.status)
+        layout.add_widget(btn)
 
-    def update_rect(self, *args):
-        # Re-import here to be 100% safe
-        from kivy.graphics import Rectangle
-        self.rect.size = self.size
-        self.rect.pos = self.pos
+        return layout
 
-# --- THE ATTACHMENT LOGIC ---
+# --- ATTACHMENT LOGIC ---
 try:
-    # 1. Create the UI
-    ui = WhispLogin()
+    # 1. Build the UI using the safe function
+    ui = WhispLogin.build_ui()
     
-    # 2. Find the App Window
-    # We check both local and global scopes to be 100% sure we find the shell
+    # 2. Find the Shell
     target_app = None
     if 'app_instance' in locals():
         target_app = locals()['app_instance']
     elif 'app_instance' in globals():
         target_app = globals()['app_instance']
         
+    # 3. Mount it
     if target_app:
-        target_app.layout.clear_widgets() # Clear "Loading..."
-        target_app.layout.add_widget(ui)  # Add Login Screen
+        target_app.layout.clear_widgets()
+        target_app.layout.add_widget(ui)
     else:
-        print("CRITICAL: Could not find app_instance to attach UI.")
+        # Fallback for strict environments
+        from kivy.app import App
+        app = App.get_running_app()
+        if app:
+            app.layout.clear_widgets()
+            app.layout.add_widget(ui)
 
 except Exception as e:
-    # This ensures the red error message appears if something else breaks
     raise e
