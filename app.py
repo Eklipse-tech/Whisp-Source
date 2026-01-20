@@ -1,17 +1,21 @@
+# We only import the layout basics at the top level
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
-from kivy.graphics import Color, Rectangle
 
 # --- UI DEFINITION ---
 class WhispLogin(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.orientation = 'vertical'
-        self.padding = [40, 60, 40, 60]  # Left, Top, Right, Bottom
+        self.padding = [40, 60, 40, 60]
         self.spacing = 20
         
+        # --- FIX: IMPORT GRAPHICS INSIDE THE METHOD ---
+        # This ensures they are available in the correct scope
+        from kivy.graphics import Color, Rectangle
+
         # Dark Background
         with self.canvas.before:
             Color(0.12, 0.12, 0.14, 1)  # Dark Grey
@@ -27,7 +31,7 @@ class WhispLogin(BoxLayout):
             size_hint=(1, 0.3)
         ))
 
-        # Inputs
+        # Username Input
         self.user = TextInput(
             hint_text="Username", 
             multiline=False, 
@@ -38,6 +42,7 @@ class WhispLogin(BoxLayout):
         )
         self.add_widget(self.user)
 
+        # Password Input
         self.pwd = TextInput(
             hint_text="Password", 
             password=True, 
@@ -49,7 +54,7 @@ class WhispLogin(BoxLayout):
         )
         self.add_widget(self.pwd)
 
-        # Button
+        # Login Button
         self.btn = Button(
             text="ENTER", 
             size_hint=(1, 0.15),
@@ -63,31 +68,30 @@ class WhispLogin(BoxLayout):
         self.add_widget(self.status)
 
     def update_rect(self, *args):
+        # We re-import here to be safe (Python caches imports so it's fast)
+        from kivy.graphics import Rectangle
         self.rect.size = self.size
         self.rect.pos = self.pos
 
 # --- THE ATTACHMENT LOGIC ---
-# This is the part that was failing before. 
-# We look for 'app_instance' in the local variables passed by the Shell.
-
 try:
     # 1. Create the UI
     ui = WhispLogin()
     
-    # 2. Find the App Window (The "Shell")
-    # In the new shell, 'app_instance' is passed directly as a local variable.
+    # 2. Find the App Window
+    # We check both local and global scopes to be 100% sure we find the shell
+    target_app = None
     if 'app_instance' in locals():
         target_app = locals()['app_instance']
+    elif 'app_instance' in globals():
+        target_app = globals()['app_instance']
         
-        # 3. Mount the UI
+    if target_app:
         target_app.layout.clear_widgets() # Clear "Loading..."
         target_app.layout.add_widget(ui)  # Add Login Screen
-        
-    elif 'app_instance' in globals():
-        # Fallback check
-        globals()['app_instance'].layout.clear_widgets()
-        globals()['app_instance'].layout.add_widget(ui)
-        
+    else:
+        print("CRITICAL: Could not find app_instance to attach UI.")
+
 except Exception as e:
-    # If this fails, the Shell will catch it and show the Red Error
+    # This ensures the red error message appears if something else breaks
     raise e
