@@ -1,4 +1,4 @@
-# --- WHISP "BLUE HORIZON" (Final Polish) ---
+# --- WHISP "BLUE HORIZON" (Master Fix) ---
 class WhispLogin(object):
     @staticmethod
     def build_ui():
@@ -11,12 +11,10 @@ class WhispLogin(object):
         from kivy.graphics import Color, RoundedRectangle
         from kivy.metrics import dp
         from kivy.clock import Clock
-        from kivy.core.window import Window
         import requests
         import threading
 
         # --- CONFIGURATION ---
-        # Your Ngrok Tunnel
         SERVER_URL = "https://malika-idioblastic-shawnda.ngrok-free.dev/login"
 
         # --- THEME COLORS ---
@@ -40,43 +38,52 @@ class WhispLogin(object):
         # 3. Card Container
         card = BoxLayout(
             orientation='vertical', 
-            padding=[dp(25), dp(40), dp(25), dp(40)], 
-            spacing=dp(20),
-            size_hint=(0.85, 0.55), 
+            padding=[dp(25), dp(30), dp(25), dp(30)], 
+            spacing=dp(15),
+            size_hint=(0.85, 0.65), 
             pos_hint={'center_x': 0.5, 'center_y': 0.55}
         )
 
-        # 4. Title (With Smart Sizing)
-        title_label = Label(
+        # 4. STATIC LOGO (Will never change)
+        logo = Label(
             text="whisp", 
             font_size='50sp', 
             bold=True, 
             color=ACCENT_COLOR,
-            size_hint=(1, 0.3),
+            size_hint=(1, 0.20),
             halign='center',
             valign='middle'
         )
-        # This ensures text wraps inside the box instead of flying off screen
-        title_label.bind(size=lambda *x: title_label.setter('text_size')(title_label, (title_label.width, None)))
-        card.add_widget(title_label)
+        logo.bind(size=lambda *x: logo.setter('text_size')(logo, (logo.width, None)))
+        card.add_widget(logo)
 
-        # 5. Helper for Inputs
+        # 5. NEW STATUS LABEL (Changes instead of logo)
+        status_label = Label(
+            text="", 
+            font_size='16sp', 
+            color=(1, 1, 0, 1), # Starts Yellow
+            size_hint=(1, 0.10),
+            halign='center'
+        )
+        card.add_widget(status_label)
+
+        # 6. Helper for Inputs (Text Visibility Fix)
         def create_input(hint, is_password=False):
-            box = BoxLayout(size_hint=(1, 0.18))
+            box = BoxLayout(size_hint=(1, 0.15))
             
             inp = TextInput(
                 hint_text=hint,
                 password=is_password,
                 multiline=False,
                 write_tab=False,
-                background_normal='', # Removes default Kivy background
-                background_active='', # Removes default focus background
-                background_color=(0,0,0,0), # Fully transparent
-                foreground_color=TEXT_COLOR,
+                background_normal='', 
+                background_active='', 
+                background_color=(0,0,0,0), # Transparent
+                foreground_color=TEXT_COLOR, # WHITE TEXT
                 cursor_color=ACCENT_COLOR,
                 hint_text_color=(0.6, 0.7, 0.8, 1),
-                # FIX: Reduced vertical padding to ensure text isn't squashed
-                padding=[dp(15), dp(15), dp(15), dp(10)],
+                # FIX: Smaller padding ensures text stays visible inside the box
+                padding=[dp(15), dp(12), dp(15), dp(12)],
                 font_size='18sp'
             )
             
@@ -99,13 +106,13 @@ class WhispLogin(object):
         card.add_widget(user_box)
         card.add_widget(pass_box)
 
-        # 6. Enter Button
+        # 7. Enter Button
         btn = Button(
             text="ENTER",
             background_color=(0,0,0,0),
             font_size='18sp',
             bold=True,
-            size_hint=(1, 0.20),
+            size_hint=(1, 0.15),
             color=(1, 1, 1, 1)
         )
         with btn.canvas.before:
@@ -117,15 +124,14 @@ class WhispLogin(object):
             inst.rect.size = inst.size
         btn.bind(pos=update_btn, size=update_btn)
 
-        # --- CONNECTION LOGIC ---
+        # --- LOGIC ---
         def on_enter(instance):
             u = user_in.text
             p = pass_in.text
             
-            # Reset UI state
-            title_label.font_size = '30sp' # Shrink font for status messages
-            title_label.text = "Connecting..."
-            title_label.color = (1, 1, 0, 1) # Yellow
+            # Update STATUS LABEL only
+            status_label.text = "Connecting..."
+            status_label.color = (1, 1, 0, 1) # Yellow
             btn.disabled = True
 
             def send_request():
@@ -147,15 +153,13 @@ class WhispLogin(object):
             threading.Thread(target=send_request).start()
 
         def success_ui():
-            title_label.font_size = '35sp' # Slightly larger for success
-            title_label.text = "ACCESS GRANTED"
-            title_label.color = (0, 1, 0, 1) # Green
+            status_label.text = "ACCESS GRANTED"
+            status_label.color = (0, 1, 0, 1) # Green
             btn.disabled = False
 
         def fail_ui(msg):
-            title_label.font_size = '30sp' # Smaller for errors so they fit
-            title_label.text = msg
-            title_label.color = (1, 0, 0, 1) # Red
+            status_label.text = msg
+            status_label.color = (1, 0, 0, 1) # Red
             btn.disabled = False
 
         btn.bind(on_release=on_enter)
