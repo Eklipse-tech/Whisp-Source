@@ -1,4 +1,4 @@
-# --- WHISP "BLUE HORIZON" (Rounded Font Edition) ---
+# --- WHISP "BLUE HORIZON" (Safe Mode & Auto-Centering) ---
 class WhispLogin(object):
     @staticmethod
     def build_ui():
@@ -12,38 +12,17 @@ class WhispLogin(object):
         from kivy.graphics import Color, RoundedRectangle
         from kivy.metrics import dp
         from kivy.clock import Clock
-        from kivy.utils import platform
         import requests
         import threading
-        import os
 
         # --- CONFIGURATION ---
         SERVER_URL = "https://malika-idioblastic-shawnda.ngrok-free.dev/login"
-        
-        # --- FONT LOADER (Auto-Downloads "Quicksand" Font) ---
-        font_name = 'Roboto' # Default fallback
-        try:
-            # We save the font to the app's internal storage
-            data_dir = os.getcwd() # Default for PC
-            font_path = os.path.join(data_dir, 'Quicksand-Bold.ttf')
-            
-            if not os.path.exists(font_path):
-                print("Downloading Font...")
-                # Direct link to Google Fonts (Quicksand Bold)
-                url = "https://github.com/google/fonts/raw/main/ofl/quicksand/Quicksand-Bold.ttf"
-                r = requests.get(url, allow_redirects=True)
-                with open(font_path, 'wb') as f:
-                    f.write(r.content)
-            
-            font_name = font_path # Use our new rounded font
-        except Exception as e:
-            print(f"Font Error: {e}") # Fallback to default if offline
 
-        # --- THEME ---
+        # --- THEME COLORS ---
         BG_COLOR = (0.08, 0.11, 0.18, 1)
         ACCENT_COLOR = (0.2, 0.6, 1.0, 1)
         INPUT_BG = (0.18, 0.22, 0.30, 1)
-        TEXT_COLOR = (1, 1, 1, 1)
+        TEXT_COLOR = (1, 1, 1, 1) # Pure White
 
         # 1. ROOT
         root = FloatLayout()
@@ -56,11 +35,11 @@ class WhispLogin(object):
             instance.bg.size = instance.size
         root.bind(pos=update_bg, size=update_bg)
 
-        # 2. ANCHOR
+        # 2. ANCHOR (Keeps everything centered)
         anchor = AnchorLayout(anchor_x='center', anchor_y='center')
         root.add_widget(anchor)
 
-        # 3. CARD
+        # 3. CARD (Fixed Dimensions)
         card = BoxLayout(
             orientation='vertical', 
             padding=[dp(25), dp(30), dp(25), dp(30)], 
@@ -70,11 +49,11 @@ class WhispLogin(object):
             height=dp(460)
         )
 
-        # 4. LOGO (Rounded Font)
+        # 4. LOGO
         logo = Label(
             text="whisp", 
-            font_name=font_name, # <--- Custom Font
-            font_size='50sp', 
+            font_size='48sp', 
+            bold=True, 
             color=ACCENT_COLOR,
             size_hint=(1, None),
             height=dp(60),
@@ -86,7 +65,6 @@ class WhispLogin(object):
 
         status_label = Label(
             text="", 
-            font_name=font_name, # <--- Custom Font
             font_size='16sp', 
             color=(1, 1, 0, 1), 
             size_hint=(1, None),
@@ -94,15 +72,16 @@ class WhispLogin(object):
         )
         card.add_widget(status_label)
 
-        # 5. INPUT BUILDER
+        # 5. INPUT BUILDER (With Auto-Centering)
         def create_input(hint, is_password=False):
+            # Fixed Height Container
             stack = FloatLayout(size_hint=(1, None), height=dp(55))
             
-            # Layer 1: Background
+            # Layer 1: The Background Box
             bg_widget = Widget(size_hint=(1, 1), pos_hint={'x': 0, 'y': 0})
             with bg_widget.canvas.before:
                 Color(*INPUT_BG)
-                bg_widget.rect = RoundedRectangle(pos=bg_widget.pos, size=bg_widget.size, radius=[15]) # Rounder corners
+                bg_widget.rect = RoundedRectangle(pos=bg_widget.pos, size=bg_widget.size, radius=[15])
             
             def update_rect(inst, val):
                 inst.rect.pos = inst.pos
@@ -110,24 +89,34 @@ class WhispLogin(object):
             bg_widget.bind(pos=update_rect, size=update_rect)
             stack.add_widget(bg_widget)
 
-            # Layer 2: Input (Rounded Font)
+            # Layer 2: The Input (Transparent)
             inp = TextInput(
                 hint_text=hint,
                 password=is_password,
-                font_name=font_name, # <--- Custom Font
                 multiline=False,
                 write_tab=False,
                 background_normal='', 
                 background_active='', 
-                background_color=(0,0,0,0),
-                foreground_color=TEXT_COLOR,
+                background_color=(0,0,0,0), # Invisible BG
+                foreground_color=TEXT_COLOR, # WHITE TEXT
                 cursor_color=ACCENT_COLOR,
                 hint_text_color=(0.6, 0.7, 0.8, 1),
-                font_size='17sp',
-                padding=[dp(15), dp(18), dp(15), dp(6)],
+                font_size='16sp',
                 size_hint=(1, 1),
                 pos_hint={'x': 0, 'y': 0}
             )
+
+            # --- THE MAGIC FIX: Auto-Calculate Padding ---
+            # This forces the text to stay in the middle vertically
+            def center_text(instance, value):
+                # Padding = [Left, Top, Right, Bottom]
+                # Top Padding = (Box Height - Text Height) / 2
+                pad_top = (instance.height - instance.line_height) / 2
+                instance.padding = [dp(15), pad_top, dp(15), 0]
+            
+            # Run calculation whenever the box changes size
+            inp.bind(size=center_text, line_height=center_text)
+            
             stack.add_widget(inp)
             return inp, stack
 
@@ -140,20 +129,19 @@ class WhispLogin(object):
         # 6. SPACER
         card.add_widget(Label(size_hint=(1, None), height=dp(10)))
 
-        # 7. BUTTON (Rounded Font)
+        # 7. BUTTON
         btn = Button(
             text="ENTER",
-            font_name=font_name, # <--- Custom Font
             background_color=(0,0,0,0),
             font_size='18sp',
-            # Removed 'bold=True' because the font file itself is already Bold
+            bold=True,
             size_hint=(1, None),
             height=dp(55),
             color=(1, 1, 1, 1)
         )
         with btn.canvas.before:
             Color(*ACCENT_COLOR) 
-            btn.rect = RoundedRectangle(pos=btn.pos, size=btn.size, radius=[28]) # Pill shape
+            btn.rect = RoundedRectangle(pos=btn.pos, size=btn.size, radius=[28])
             
         def update_btn(inst, val):
             inst.rect.pos = inst.pos
